@@ -2,7 +2,9 @@
 
 VoxTail Type-B is a Windows x64 VST3 vocal effect for adding controlled saturation, tone shaping, and stylized cracked vocal tails. The host-independent DSP core is kept separate from the NPlug lifecycle and processes existing audio buffers without per-block allocations.
 
-The plugin exposes Input Gain, Intensity, Drive, Tone, Clean / Wet Mix, Tail Amount, Tail Drop, Tail Time, Tail Character, Output Gain, and Bypass. Tail Amount controls the tail texture; Tail Drop attenuates the processed signal as the detected tail fades. Tail Character selects **Crackle**, **Breaks**, or **Glitch**. Factory programs include Clean, Bite, Shout, Cracked Tail, Broken Tail, and Glitch Tail; programs can be adjusted after loading, and DAW preset/state features can save custom settings.
+The plugin exposes Input Gain, Intensity, Drive, Tone, Clean / Wet Mix, Tail Amount, Tail Drop, Tail Time, Tail Character, Dynamic Boost, Voice Threshold, Target Level, Maximum Boost, Output Gain, and Bypass. Tail Amount controls the tail texture; Tail Drop attenuates the processed signal as the detected tail fades. Tail Character selects **Crackle**, **Breaks**, or **Glitch**. Dynamic Boost follows a real-time loudness envelope and lifts active, quiet audio toward Target Level, bounded by Maximum Boost; Voice Threshold prevents boosting silence and low-level noise. Defaults leave this feature off. Factory programs include Clean, Bite, Shout, Cracked Tail, Broken Tail, and Glitch Tail; programs can be adjusted after loading, and DAW preset/state features can save custom settings.
+
+Dynamic Boost is a real-time leveler, not an offline phrase analyzer: it does not add lookahead latency or know exact phrase boundaries. Voice Threshold and envelope smoothing estimate active audio continuously. The envelope currently drives gain internally; a visual loudness graph requires a future custom UI.
 
 This is a creative effect, not voice conversion: DSP can add harmonics and stylized texture, but cannot guarantee that a quiet recording will sound identical to a real human shout.
 

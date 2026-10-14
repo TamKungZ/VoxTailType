@@ -21,6 +21,22 @@ public sealed class PluginValidationTests
             Enumerable.Range(0, model.ParameterCount).Select(model.GetParameterByIndex),
             parameter => parameter.Title == "Tail Drop");
         Assert.Equal(0d, tailDrop.NormalizedValue);
+        Assert.Contains(Enumerable.Range(0, model.ParameterCount)
+            .Select(model.GetParameterByIndex)
+            .Select(parameter => parameter.Title),
+            title => title == "Dynamic Boost");
+        Assert.Contains(Enumerable.Range(0, model.ParameterCount)
+            .Select(model.GetParameterByIndex)
+            .Select(parameter => parameter.Title),
+            title => title == "Voice Threshold");
+        Assert.Contains(Enumerable.Range(0, model.ParameterCount)
+            .Select(model.GetParameterByIndex)
+            .Select(parameter => parameter.Title),
+            title => title == "Target Level");
+        Assert.Contains(Enumerable.Range(0, model.ParameterCount)
+            .Select(model.GetParameterByIndex)
+            .Select(parameter => parameter.Title),
+            title => title == "Maximum Boost");
 
         Assert.Equal(1, model.ProgramListCount);
         var programs = model.GetProgramListByIndex(0);
