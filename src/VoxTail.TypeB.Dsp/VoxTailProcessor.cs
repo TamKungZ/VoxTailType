@@ -53,8 +53,11 @@ public sealed class VoxTailProcessor
     private float _outputGain = 1f;
     private float _dynamicBoost;
     private float _toneCoefficient;
+    private float _targetToneCoefficient;
     private float _envelopeReleaseCoefficient;
+    private float _targetEnvelopeReleaseCoefficient;
     private float _peakReleaseCoefficient;
+    private float _targetPeakReleaseCoefficient;
     private float _voiceThreshold;
     private float _targetLevel;
     private float _maximumBoost;
@@ -87,10 +90,13 @@ public sealed class VoxTailProcessor
         _rmsAttackCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.015f));
         _rmsReleaseCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.12f));
         _boostAttackCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.04f));
-        _boostReleaseCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.2f));
+        _boostReleaseCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.05f));
         _randomSeed = randomSeed == 0 ? 1u : randomSeed;
         _randomState = _randomSeed;
-        UpdateProcessingCoefficients();
+        UpdateProcessingCoefficientTargets();
+        _toneCoefficient = _targetToneCoefficient;
+        _envelopeReleaseCoefficient = _targetEnvelopeReleaseCoefficient;
+        _peakReleaseCoefficient = _targetPeakReleaseCoefficient;
     }
 
     public void SetParameters(VoxTailParameters parameters)
@@ -121,7 +127,7 @@ public sealed class VoxTailProcessor
             throw new ArgumentException("Input and output buffers must have the same length.", nameof(output));
         }
 
-        UpdateProcessingCoefficients();
+        UpdateProcessingCoefficientTargets();
         UpdateDynamicLevelerTargets();
 
         for (var index = 0; index < input.Length; index++)
@@ -136,6 +142,9 @@ public sealed class VoxTailProcessor
             _tailTimeMilliseconds = Smooth(_tailTimeMilliseconds, _target.TailTimeMilliseconds);
             _outputGain = Smooth(_outputGain, DecibelsToGain(_target.OutputGainDb));
             _dynamicBoost = Smooth(_dynamicBoost, _target.DynamicBoost);
+            _toneCoefficient = Smooth(_toneCoefficient, _targetToneCoefficient);
+            _envelopeReleaseCoefficient = Smooth(_envelopeReleaseCoefficient, _targetEnvelopeReleaseCoefficient);
+            _peakReleaseCoefficient = Smooth(_peakReleaseCoefficient, _targetPeakReleaseCoefficient);
 
             var dry = float.IsFinite(input[index]) ? input[index] : 0f;
             var detectorInput = Math.Clamp(dry, -MaximumInternalSample, MaximumInternalSample);
@@ -298,13 +307,13 @@ public sealed class VoxTailProcessor
         return 1f - MathF.Exp(-2f * MathF.PI * cutoff / _sampleRate);
     }
 
-    private void UpdateProcessingCoefficients()
+    private void UpdateProcessingCoefficientTargets()
     {
-        _toneCoefficient = ToneCoefficient(_tone);
-        var envelopeSeconds = Math.Clamp(_tailTimeMilliseconds / 1000f * 0.2f, 0.01f, 0.15f);
-        var peakSeconds = Math.Clamp(_tailTimeMilliseconds / 1000f, 0.05f, 1.5f);
-        _envelopeReleaseCoefficient = 1f - MathF.Exp(-1f / (_sampleRate * envelopeSeconds));
-        _peakReleaseCoefficient = 1f - MathF.Exp(-1f / (_sampleRate * peakSeconds));
+        _targetToneCoefficient = ToneCoefficient(_target.Tone);
+        var envelopeSeconds = Math.Clamp(_target.TailTimeMilliseconds / 1000f * 0.2f, 0.01f, 0.15f);
+        var peakSeconds = Math.Clamp(_target.TailTimeMilliseconds / 1000f, 0.05f, 1.5f);
+        _targetEnvelopeReleaseCoefficient = 1f - MathF.Exp(-1f / (_sampleRate * envelopeSeconds));
+        _targetPeakReleaseCoefficient = 1f - MathF.Exp(-1f / (_sampleRate * peakSeconds));
     }
 
     private void UpdateDynamicLevelerTargets()

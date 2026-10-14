@@ -40,7 +40,13 @@ public sealed class VoxTailProcessorTests
     public void Process_HandlesNonFiniteInputAndBoundsProcessedOutput()
     {
         var processor = new VoxTailProcessor(48000);
-        processor.SetParameters(VoxTailParameters.Default with { Drive = 1f, Mix = 1f, OutputGainDb = 12f });
+        processor.SetParameters(VoxTailParameters.Default with
+        {
+            Drive = 1f,
+            Mix = 1f,
+            OutputGainDb = 12f,
+            DynamicBoost = 1f
+        });
         float[] input = [float.NaN, float.PositiveInfinity, float.NegativeInfinity, 10f, -10f, float.MaxValue, -float.MaxValue];
         var output = new float[input.Length];
 
@@ -63,7 +69,11 @@ public sealed class VoxTailProcessorTests
             TailAmount = float.NaN,
             TailDrop = float.PositiveInfinity,
             TailTimeMilliseconds = float.NaN,
-            OutputGainDb = float.PositiveInfinity
+            OutputGainDb = float.PositiveInfinity,
+            DynamicBoost = float.NaN,
+            VoiceThresholdDb = float.PositiveInfinity,
+            TargetLevelDb = float.NegativeInfinity,
+            MaximumBoostDb = float.NaN
         });
         float[] input = [0f, 0.25f, -0.5f, 0.75f];
         var output = new float[input.Length];
@@ -135,6 +145,33 @@ public sealed class VoxTailProcessorTests
         var inputRms = Rms(input.AsSpan(sampleRate / 2));
         var outputRms = Rms(output.AsSpan(sampleRate / 2));
         Assert.True(MathF.Abs(outputRms - inputRms) < 0.001f, $"Already-loud audio should remain at unity. Input RMS: {inputRms}; output RMS: {outputRms}");
+    }
+
+    [Fact]
+    public void Process_DynamicBoostReducesGainQuicklyWhenInputBecomesLoud()
+    {
+        const int sampleRate = 48000;
+        var processor = new VoxTailProcessor(sampleRate);
+        processor.SetParameters(VoxTailParameters.Default with
+        {
+            DynamicBoost = 1f,
+            VoiceThresholdDb = -54f,
+            TargetLevelDb = -18f,
+            MaximumBoostDb = 12f
+        });
+        var input = new float[sampleRate];
+        for (var index = 0; index < input.Length; index++)
+        {
+            var amplitude = index < sampleRate / 3 ? 0.02f : 0.5f;
+            input[index] = amplitude * MathF.Sin(2f * MathF.PI * 440f * index / sampleRate);
+        }
+
+        var output = new float[input.Length];
+        processor.Process(input, output);
+
+        var inputLoudRms = Rms(input.AsSpan(sampleRate * 2 / 3));
+        var outputLoudRms = Rms(output.AsSpan(sampleRate * 2 / 3));
+        Assert.InRange(outputLoudRms, inputLoudRms * 0.9f, inputLoudRms * 1.1f);
     }
 
     [Fact]
@@ -233,6 +270,41 @@ public sealed class VoxTailProcessorTests
             TailAmount = 0.4f,
             TailDrop = 0.3f
         };
+        wholeBlockProcessor.SetParameters(parameters);
+        variableBlockProcessor.SetParameters(parameters);
+        var wholeBlockOutput = new float[input.Length];
+        var variableBlockOutput = new float[input.Length];
+
+        wholeBlockProcessor.Process(input, wholeBlockOutput);
+        var blockSizes = new[] { 17, 256, 63, 1024, 5, 511 };
+        var offset = 0;
+        var blockIndex = 0;
+        while (offset < input.Length)
+        {
+            var count = Math.Min(blockSizes[blockIndex++ % blockSizes.Length], input.Length - offset);
+            variableBlockProcessor.Process(input.AsSpan(offset, count), variableBlockOutput.AsSpan(offset, count));
+            offset += count;
+        }
+
+        Assert.Equal(wholeBlockOutput, variableBlockOutput);
+    }
+
+    [Fact]
+    public void Process_AutomatedToneAndTailTimeAreIndependentOfBlockSize()
+    {
+        const int sampleRate = 48000;
+        var input = CreateVocalTail(sampleRate);
+        var parameters = VoxTailParameters.Default with
+        {
+            Tone = 0.9f,
+            TailTimeMilliseconds = 1200f,
+            Drive = 0.6f,
+            Mix = 0.8f,
+            TailAmount = 0.4f,
+            TailDrop = 0.3f
+        };
+        var wholeBlockProcessor = new VoxTailProcessor(sampleRate);
+        var variableBlockProcessor = new VoxTailProcessor(sampleRate);
         wholeBlockProcessor.SetParameters(parameters);
         variableBlockProcessor.SetParameters(parameters);
         var wholeBlockOutput = new float[input.Length];
