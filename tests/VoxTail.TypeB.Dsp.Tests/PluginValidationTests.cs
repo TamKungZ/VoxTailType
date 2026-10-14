@@ -1,3 +1,4 @@
+using NPlug;
 using NPlug.Validator;
 using VoxTail.TypeB.Plugin;
 
@@ -5,6 +6,25 @@ namespace VoxTail.TypeB.Dsp.Tests;
 
 public sealed class PluginValidationTests
 {
+    [Fact]
+    public void Model_ExposesNamedTailCharactersAndFactoryPrograms()
+    {
+        var model = new VoxTailTypeBModel();
+        model.Initialize();
+
+        var tailCharacter = Assert.Single(Enumerable.Range(0, model.ParameterCount)
+            .Select(model.GetParameterByIndex)
+            .Where(parameter => parameter.Title == "Tail Character")
+            .OfType<AudioStringListParameter>());
+        Assert.Equal(["Crackle", "Breaks", "Glitch"], tailCharacter.Items);
+
+        Assert.Equal(1, model.ProgramListCount);
+        var programs = model.GetProgramListByIndex(0);
+        Assert.Equal(
+            ["Clean", "Bite", "Shout", "Cracked Tail", "Broken Tail", "Glitch Tail"],
+            programs.Select(program => program.Name));
+    }
+
     [Fact]
     public void PluginFactoryAndPublishedBinary_PassVst3ValidatorWhenBinaryExists()
     {
