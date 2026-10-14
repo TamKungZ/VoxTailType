@@ -17,6 +17,10 @@ public sealed class PluginValidationTests
             .Where(parameter => parameter.Title == "Tail Character")
             .OfType<AudioStringListParameter>());
         Assert.Equal(["Crackle", "Breaks", "Glitch"], tailCharacter.Items);
+        var tailDrop = Assert.Single(
+            Enumerable.Range(0, model.ParameterCount).Select(model.GetParameterByIndex),
+            parameter => parameter.Title == "Tail Drop");
+        Assert.Equal(0d, tailDrop.NormalizedValue);
 
         Assert.Equal(1, model.ProgramListCount);
         var programs = model.GetProgramListByIndex(0);

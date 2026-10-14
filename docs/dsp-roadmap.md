@@ -2,10 +2,10 @@
 
 ## Implemented
 
-- Host-automatable Input Gain, Intensity, Drive, Tone, Clean / Wet Mix, Tail Amount, Tail Time, Tail Character, Output Gain, and Bypass.
+- Host-automatable Input Gain, Intensity, Drive, Tone, Clean / Wet Mix, Tail Amount, Tail Drop, Tail Time, Tail Character, Output Gain, and Bypass.
 - Smoothed continuous controls, a saturation/tone path, envelope-based tail triggering, and Crackle, Breaks, and Glitch tail treatments.
 - Factory programs: Clean, Bite, Shout, Cracked Tail, Broken Tail, and Glitch Tail. The DAW can save modified settings as user presets.
-- Synthetic tests for neutral transparency, drive coloration, all tail modes, non-finite values, output bounds, common sample rates, and allocations.
+- Synthetic tests for neutral transparency, drive coloration, all tail modes, tail-drop attenuation, non-finite input and parameters, output bounds, common sample rates, variable block sizes, and allocations.
 
 ## Remaining validation
 

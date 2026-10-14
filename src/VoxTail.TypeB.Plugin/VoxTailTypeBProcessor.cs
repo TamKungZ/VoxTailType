@@ -69,6 +69,7 @@ public sealed class VoxTailTypeBProcessor : AudioProcessor<VoxTailTypeBModel>
             Read(Model, VoxTailParameterIds.Tone),
             Read(Model, VoxTailParameterIds.Mix),
             Read(Model, VoxTailParameterIds.TailAmount),
+            Read(Model, VoxTailParameterIds.TailDrop),
             50f + (Read(Model, VoxTailParameterIds.TailTime) * 1450f),
             tailCharacter,
             Decibels(Read(Model, VoxTailParameterIds.OutputGain)));

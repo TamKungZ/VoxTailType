@@ -41,12 +41,55 @@ public sealed class VoxTailProcessorTests
     {
         var processor = new VoxTailProcessor(48000);
         processor.SetParameters(VoxTailParameters.Default with { Drive = 1f, Mix = 1f, OutputGainDb = 12f });
-        float[] input = [float.NaN, float.PositiveInfinity, float.NegativeInfinity, 10f, -10f];
+        float[] input = [float.NaN, float.PositiveInfinity, float.NegativeInfinity, 10f, -10f, float.MaxValue, -float.MaxValue];
         var output = new float[input.Length];
 
         processor.Process(input, output);
 
         Assert.All(output, sample => Assert.True(float.IsFinite(sample) && MathF.Abs(sample) <= 1f));
+    }
+
+    [Fact]
+    public void Process_SanitizesNonFiniteParameters()
+    {
+        var processor = new VoxTailProcessor(48000);
+        processor.SetParameters(VoxTailParameters.Default with
+        {
+            InputGainDb = float.NaN,
+            Intensity = float.PositiveInfinity,
+            Drive = float.NegativeInfinity,
+            Tone = float.NaN,
+            Mix = float.PositiveInfinity,
+            TailAmount = float.NaN,
+            TailDrop = float.PositiveInfinity,
+            TailTimeMilliseconds = float.NaN,
+            OutputGainDb = float.PositiveInfinity
+        });
+        float[] input = [0f, 0.25f, -0.5f, 0.75f];
+        var output = new float[input.Length];
+
+        processor.Process(input, output);
+
+        Assert.All(output, sample => Assert.True(float.IsFinite(sample) && MathF.Abs(sample) <= 1f));
+    }
+
+    [Fact]
+    public void Process_TailDropAttenuatesOnlyTheFallingTail()
+    {
+        const int sampleRate = 48000;
+        var input = CreateVocalTail(sampleRate);
+        var dryTail = ProcessTailDrop(input, sampleRate, 0f);
+        var droppedTail = ProcessTailDrop(input, sampleRate, 1f);
+
+        var earlyDifference = MeanAbsoluteDifference(
+            dryTail.AsSpan((int)(sampleRate * 0.1f), (int)(sampleRate * 0.1f)),
+            droppedTail.AsSpan((int)(sampleRate * 0.1f), (int)(sampleRate * 0.1f)));
+        var tailDifference = MeanAbsoluteDifference(
+            dryTail.AsSpan((int)(sampleRate * 0.6f), (int)(sampleRate * 0.2f)),
+            droppedTail.AsSpan((int)(sampleRate * 0.6f), (int)(sampleRate * 0.2f)));
+
+        Assert.True(earlyDifference < 0.01f, $"Early difference: {earlyDifference}");
+        Assert.True(tailDifference > 0.01f, $"Tail difference: {tailDifference}");
     }
 
     [Fact]
@@ -91,6 +134,48 @@ public sealed class VoxTailProcessorTests
         }
 
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
+    [Fact]
+    public void Process_ProducesConsistentOutputAcrossVariableBlockSizes()
+    {
+        const int sampleRate = 48000;
+        var input = CreateVocalTail(sampleRate);
+        var wholeBlockProcessor = new VoxTailProcessor(sampleRate);
+        var variableBlockProcessor = new VoxTailProcessor(sampleRate);
+        var parameters = VoxTailParameters.Default with
+        {
+            Drive = 0.6f,
+            Mix = 0.8f,
+            TailAmount = 0.4f,
+            TailDrop = 0.3f
+        };
+        wholeBlockProcessor.SetParameters(parameters);
+        variableBlockProcessor.SetParameters(parameters);
+        var wholeBlockOutput = new float[input.Length];
+        var variableBlockOutput = new float[input.Length];
+
+        wholeBlockProcessor.Process(input, wholeBlockOutput);
+        var blockSizes = new[] { 17, 256, 63, 1024, 5, 511 };
+        var offset = 0;
+        var blockIndex = 0;
+        while (offset < input.Length)
+        {
+            var count = Math.Min(blockSizes[blockIndex++ % blockSizes.Length], input.Length - offset);
+            variableBlockProcessor.Process(input.AsSpan(offset, count), variableBlockOutput.AsSpan(offset, count));
+            offset += count;
+        }
+
+        Assert.Equal(wholeBlockOutput, variableBlockOutput);
+    }
+
+    private static float[] ProcessTailDrop(float[] input, int sampleRate, float tailDrop)
+    {
+        var processor = new VoxTailProcessor(sampleRate);
+        processor.SetParameters(VoxTailParameters.Default with { Mix = 1f, TailDrop = tailDrop });
+        var output = new float[input.Length];
+        processor.Process(input, output);
+        return output;
     }
 
     private static float[] CreateVocalTail(int sampleRate)

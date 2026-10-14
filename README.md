@@ -2,7 +2,7 @@
 
 VoxTail Type-B is a Windows x64 VST3 vocal effect for adding controlled saturation, tone shaping, and stylized cracked vocal tails. The host-independent DSP core is kept separate from the NPlug lifecycle and processes existing audio buffers without per-block allocations.
 
-The plugin exposes Input Gain, Intensity, Drive, Tone, Clean / Wet Mix, Tail Amount, Tail Time, Tail Character, Output Gain, and Bypass. Tail Character selects **Crackle**, **Breaks**, or **Glitch**. Factory programs include Clean, Bite, Shout, Cracked Tail, Broken Tail, and Glitch Tail; programs can be adjusted after loading, and DAW preset/state features can save custom settings.
+The plugin exposes Input Gain, Intensity, Drive, Tone, Clean / Wet Mix, Tail Amount, Tail Drop, Tail Time, Tail Character, Output Gain, and Bypass. Tail Amount controls the tail texture; Tail Drop attenuates the processed signal as the detected tail fades. Tail Character selects **Crackle**, **Breaks**, or **Glitch**. Factory programs include Clean, Bite, Shout, Cracked Tail, Broken Tail, and Glitch Tail; programs can be adjusted after loading, and DAW preset/state features can save custom settings.
 
 This is a creative effect, not voice conversion: DSP can add harmonics and stylized texture, but cannot guarantee that a quiet recording will sound identical to a real human shout.
 

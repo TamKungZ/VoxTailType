@@ -14,18 +14,22 @@ public readonly record struct VoxTailParameters(
     float Tone,
     float Mix,
     float TailAmount,
+    float TailDrop,
     float TailTimeMilliseconds,
     TailCharacter TailCharacter,
     float OutputGainDb)
 {
-    public static VoxTailParameters Default => new(0f, 0f, 0f, 0.5f, 0f, 0f, 250f, TailCharacter.Crackle, 0f);
+    public static VoxTailParameters Default => new(0f, 0f, 0f, 0.5f, 0f, 0f, 0f, 250f, TailCharacter.Crackle, 0f);
 }
 
 public sealed class VoxTailProcessor
 {
     private const float MinimumEnvelope = 0.0001f;
+    private const float MinimumFilterState = 1e-20f;
+    private const float MaximumInternalSample = 1_000_000f;
     private readonly float _sampleRate;
     private readonly float _smoothingCoefficient;
+    private readonly float _attackCoefficient;
     private readonly uint _randomSeed;
     private VoxTailParameters _target = VoxTailParameters.Default;
     private float _inputGain = 1f;
@@ -34,8 +38,12 @@ public sealed class VoxTailProcessor
     private float _tone = 0.5f;
     private float _mix;
     private float _tailAmount;
+    private float _tailDrop;
     private float _tailTimeMilliseconds = 250f;
     private float _outputGain = 1f;
+    private float _toneCoefficient;
+    private float _envelopeReleaseCoefficient;
+    private float _peakReleaseCoefficient;
     private float _toneLow;
     private float _envelope;
     private float _peak;
@@ -54,8 +62,10 @@ public sealed class VoxTailProcessor
 
         _sampleRate = sampleRate;
         _smoothingCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.01f));
+        _attackCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.003f));
         _randomSeed = randomSeed == 0 ? 1u : randomSeed;
         _randomState = _randomSeed;
+        UpdateProcessingCoefficients();
     }
 
     public void SetParameters(VoxTailParameters parameters)
@@ -68,6 +78,7 @@ public sealed class VoxTailProcessor
             Tone = ClampFinite(parameters.Tone, 0f, 1f),
             Mix = ClampFinite(parameters.Mix, 0f, 1f),
             TailAmount = ClampFinite(parameters.TailAmount, 0f, 1f),
+            TailDrop = ClampFinite(parameters.TailDrop, 0f, 1f),
             TailTimeMilliseconds = ClampFinite(parameters.TailTimeMilliseconds, 50f, 1500f),
             TailCharacter = Enum.IsDefined(parameters.TailCharacter) ? parameters.TailCharacter : TailCharacter.Crackle,
             OutputGainDb = ClampFinite(parameters.OutputGainDb, -12f, 12f)
@@ -81,6 +92,8 @@ public sealed class VoxTailProcessor
             throw new ArgumentException("Input and output buffers must have the same length.", nameof(output));
         }
 
+        UpdateProcessingCoefficients();
+
         for (var index = 0; index < input.Length; index++)
         {
             _inputGain = Smooth(_inputGain, DecibelsToGain(_target.InputGainDb));
@@ -89,28 +102,35 @@ public sealed class VoxTailProcessor
             _tone = Smooth(_tone, _target.Tone);
             _mix = Smooth(_mix, _target.Mix);
             _tailAmount = Smooth(_tailAmount, _target.TailAmount);
+            _tailDrop = Smooth(_tailDrop, _target.TailDrop);
             _tailTimeMilliseconds = Smooth(_tailTimeMilliseconds, _target.TailTimeMilliseconds);
             _outputGain = Smooth(_outputGain, DecibelsToGain(_target.OutputGainDb));
 
             var dry = float.IsFinite(input[index]) ? input[index] : 0f;
-            var gained = dry * _inputGain;
+            var gained = Math.Clamp(dry * _inputGain, -MaximumInternalSample, MaximumInternalSample);
             var magnitude = MathF.Abs(gained);
             UpdateEnvelope(magnitude);
 
-            var tailWeight = _peak > MinimumEnvelope
-                ? Math.Clamp((_peak - _envelope) / (_peak * 0.75f), 0f, 1f) * _tailAmount
+            var rawTailActivity = _peak > MinimumEnvelope
+                ? Math.Clamp((0.75f - (_envelope / _peak)) / 0.55f, 0f, 1f)
                 : 0f;
-            var drive = 1f + (_drive * 18f) + (_intensity * 7f) + (tailWeight * 10f);
+            var textureWeight = rawTailActivity * _tailAmount;
+            var drive = 1f + (_drive * 18f) + (_intensity * 7f) + (textureWeight * 10f);
             var normalizedSaturation = MathF.Tanh(drive);
             var saturated = drive > 1f
                 ? MathF.Tanh(gained * drive) / normalizedSaturation
                 : gained;
 
-            var toneCoefficient = ToneCoefficient(_tone);
-            _toneLow += toneCoefficient * (saturated - _toneLow);
+            _toneLow += _toneCoefficient * (saturated - _toneLow);
+            if (MathF.Abs(_toneLow) < MinimumFilterState)
+            {
+                _toneLow = 0f;
+            }
+
             var highGain = 0.4f + (1.2f * _tone);
             var wet = _toneLow + ((saturated - _toneLow) * highGain);
-            wet = ApplyTailCharacter(wet, tailWeight);
+            wet = ApplyTailCharacter(wet, textureWeight);
+            wet *= 1f - (rawTailActivity * _tailDrop);
 
             var mixed = (dry * (1f - _mix)) + (wet * _mix);
             var processed = mixed * _outputGain;
@@ -125,15 +145,8 @@ public sealed class VoxTailProcessor
 
     private void UpdateEnvelope(float magnitude)
     {
-        const float attackSeconds = 0.003f;
-        var attackCoefficient = 1f - MathF.Exp(-1f / (_sampleRate * attackSeconds));
-        var envelopeSeconds = Math.Clamp(_tailTimeMilliseconds / 1000f * 0.2f, 0.01f, 0.15f);
-        var envelopeCoefficient = 1f - MathF.Exp(-1f / (_sampleRate * envelopeSeconds));
-        var peakSeconds = Math.Clamp(_tailTimeMilliseconds / 1000f, 0.05f, 1.5f);
-        var peakCoefficient = 1f - MathF.Exp(-1f / (_sampleRate * peakSeconds));
-
-        _envelope += (magnitude - _envelope) * (magnitude > _envelope ? attackCoefficient : envelopeCoefficient);
-        _peak += (magnitude - _peak) * (magnitude > _peak ? attackCoefficient : peakCoefficient);
+        _envelope += (magnitude - _envelope) * (magnitude > _envelope ? _attackCoefficient : _envelopeReleaseCoefficient);
+        _peak += (magnitude - _peak) * (magnitude > _peak ? _attackCoefficient : _peakReleaseCoefficient);
     }
 
     private float ApplyTailCharacter(float sample, float tailWeight)
@@ -208,6 +221,15 @@ public sealed class VoxTailProcessor
     {
         var cutoff = 700f * MathF.Pow(18f, tone);
         return 1f - MathF.Exp(-2f * MathF.PI * cutoff / _sampleRate);
+    }
+
+    private void UpdateProcessingCoefficients()
+    {
+        _toneCoefficient = ToneCoefficient(_tone);
+        var envelopeSeconds = Math.Clamp(_tailTimeMilliseconds / 1000f * 0.2f, 0.01f, 0.15f);
+        var peakSeconds = Math.Clamp(_tailTimeMilliseconds / 1000f, 0.05f, 1.5f);
+        _envelopeReleaseCoefficient = 1f - MathF.Exp(-1f / (_sampleRate * envelopeSeconds));
+        _peakReleaseCoefficient = 1f - MathF.Exp(-1f / (_sampleRate * peakSeconds));
     }
 
     private float NextRandomUnit()
