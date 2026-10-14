@@ -10,14 +10,19 @@ This is a creative effect, not voice conversion: DSP can add harmonics and styli
 
 ## Build and test
 
-Requires the .NET 10 SDK and the Visual C++ build tools needed by NativeAOT.
+Requires the .NET 10 SDK and the Visual C++ build tools and Windows SDK required by NativeAOT. The build tools are required on machines that publish the plugin; they are not required on machines that only install and use the resulting VST3.
 
 ```powershell
 dotnet test VoxTail-Type-B.sln
+```
+
+Publish from a regular terminal with:
+
+```powershell
 dotnet publish src\VoxTail.TypeB.Plugin\VoxTail.TypeB.Plugin.csproj -c Release -r win-x64 -p:PublishAot=true
 ```
 
-If NativeAOT cannot discover the installed Visual Studio linker, run the publish command from a Visual Studio Developer Command Prompt and add `-p:IlcUseEnvironmentalTools=true`.
+If this fails with **Platform linker not found**, first verify that the Visual C++ x64 tools and Windows SDK are installed. Then retry from **x64 Native Tools Command Prompt for Visual Studio** (or **Developer PowerShell for Visual Studio**) with `-p:IlcUseEnvironmentalTools=true`. This is a fallback for linker discovery, not a requirement for every machine.
 
 The native plug-in bundle is written to `artifacts\VoxTail-Type-B\win-x64\VoxTail Type-B.vst3`. Copy that bundle directory to a VST3 scan directory or add the output directory to the DAW's plug-in paths, then rescan for **VoxTail Type-B**. NPlug's validator is included as a dependency; its execution status is documented in `docs/development.md`.
 

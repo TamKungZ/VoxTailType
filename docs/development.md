@@ -8,14 +8,19 @@
 
 ## Commands
 
-Run from the repository root:
+Run tests from the repository root in any terminal:
 
 ```powershell
 dotnet test VoxTail-Type-B.sln
+```
+
+For NativeAOT publishing, run this standard command from the repository root:
+
+```powershell
 dotnet publish src\VoxTail.TypeB.Plugin\VoxTail.TypeB.Plugin.csproj -c Release -r win-x64 -p:PublishAot=true
 ```
 
-If NativeAOT cannot discover the installed Visual Studio linker, run publish from a Visual Studio Developer Command Prompt and add `-p:IlcUseEnvironmentalTools=true`.
+If publishing fails with **Platform linker not found**, verify that the Visual C++ x64 tools and Windows SDK are installed. Then retry from **x64 Native Tools Command Prompt for Visual Studio** or **Developer PowerShell for Visual Studio**, adding `-p:IlcUseEnvironmentalTools=true` to the command. This is a fallback for environments where NativeAOT cannot discover the linker; it is not required on every machine.
 
 NativeAOT publish output is configured under `artifacts\VoxTail-Type-B\win-x64`. The publish target packages the native module as a VST3 bundle at `artifacts\VoxTail-Type-B\win-x64\VoxTail Type-B.vst3\Contents\x86_64-win\VoxTail.TypeB.vst3`.
 
