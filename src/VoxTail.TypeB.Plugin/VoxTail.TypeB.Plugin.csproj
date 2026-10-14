@@ -3,6 +3,9 @@
     <TargetFramework>$(TargetFramework)</TargetFramework>
     <RootNamespace>VoxTail.TypeB.Plugin</RootNamespace>
     <AssemblyName>VoxTail.TypeB</AssemblyName>
+    <Authors>TamKungZ_</Authors>
+    <RepositoryUrl>https://github.com/TamKungZ/VoxTailType</RepositoryUrl>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <PublishDir>$(MSBuildThisFileDirectory)..\..\artifacts\VoxTail-Type-B\$(RuntimeIdentifier)\</PublishDir>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>

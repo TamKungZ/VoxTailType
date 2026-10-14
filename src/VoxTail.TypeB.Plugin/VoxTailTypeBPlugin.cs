@@ -7,7 +7,8 @@ public static class VoxTailTypeBPlugin
 {
     public static AudioPluginFactory GetFactory()
     {
-        var factory = new AudioPluginFactory(new("VoxTail", "https://github.com/", "no_reply@voxtail.dev"));
+        var factory = new AudioPluginFactory(
+            new("TamKungZ_", "https://github.com/TamKungZ/VoxTailType", "dev@tamkungz.me"));
         factory.RegisterPlugin<VoxTailTypeBProcessor>(
             new(VoxTailTypeBProcessor.ClassId, "VoxTail Type-B", AudioProcessorCategory.Effect));
         factory.RegisterPlugin<VoxTailTypeBController>(
