@@ -21,8 +21,8 @@
     </PropertyGroup>
     <MakeDir Directories="$(Vst3BundlePath)\Contents\x86_64-win" />
     <Copy
-      SourceFiles="$(PublishDir)$(AssemblyName).vst3"
+      SourceFiles="$(PublishDir)$(AssemblyName).dll"
       DestinationFiles="$(Vst3BundlePath)\Contents\x86_64-win\$(AssemblyName).vst3" />
-    <Delete Files="$(PublishDir)$(AssemblyName).vst3" />
+    <Delete Files="$(PublishDir)$(AssemblyName).dll" />
   </Target>
 </Project>

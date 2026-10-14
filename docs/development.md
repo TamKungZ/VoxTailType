@@ -15,6 +15,8 @@ dotnet test VoxTail-Type-B.sln
 dotnet publish src\VoxTail.TypeB.Plugin\VoxTail.TypeB.Plugin.csproj -c Release -r win-x64 -p:PublishAot=true
 ```
 
+If NativeAOT cannot discover the installed Visual Studio linker, run publish from a Visual Studio Developer Command Prompt and add `-p:IlcUseEnvironmentalTools=true`.
+
 NativeAOT publish output is configured under `artifacts\VoxTail-Type-B\win-x64`. The publish target packages the native module as a VST3 bundle at `artifacts\VoxTail-Type-B\win-x64\VoxTail Type-B.vst3\Contents\x86_64-win\VoxTail.TypeB.vst3`.
 
 ## Validation
