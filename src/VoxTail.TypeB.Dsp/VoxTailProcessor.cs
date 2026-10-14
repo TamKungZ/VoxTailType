@@ -17,9 +17,13 @@ public readonly record struct VoxTailParameters(
     float TailDrop,
     float TailTimeMilliseconds,
     TailCharacter TailCharacter,
-    float OutputGainDb)
+    float OutputGainDb,
+    float DynamicBoost,
+    float VoiceThresholdDb,
+    float TargetLevelDb,
+    float MaximumBoostDb)
 {
-    public static VoxTailParameters Default => new(0f, 0f, 0f, 0.5f, 0f, 0f, 0f, 250f, TailCharacter.Crackle, 0f);
+    public static VoxTailParameters Default => new(0f, 0f, 0f, 0.5f, 0f, 0f, 0f, 250f, TailCharacter.Crackle, 0f, 0f, -54f, -24f, 9f);
 }
 
 public sealed class VoxTailProcessor
@@ -30,6 +34,12 @@ public sealed class VoxTailProcessor
     private readonly float _sampleRate;
     private readonly float _smoothingCoefficient;
     private readonly float _attackCoefficient;
+    private readonly float _activityAttackCoefficient;
+    private readonly float _activityReleaseCoefficient;
+    private readonly float _rmsAttackCoefficient;
+    private readonly float _rmsReleaseCoefficient;
+    private readonly float _boostAttackCoefficient;
+    private readonly float _boostReleaseCoefficient;
     private readonly uint _randomSeed;
     private VoxTailParameters _target = VoxTailParameters.Default;
     private float _inputGain = 1f;
@@ -41,12 +51,21 @@ public sealed class VoxTailProcessor
     private float _tailDrop;
     private float _tailTimeMilliseconds = 250f;
     private float _outputGain = 1f;
+    private float _dynamicBoost;
     private float _toneCoefficient;
     private float _envelopeReleaseCoefficient;
     private float _peakReleaseCoefficient;
+    private float _voiceThreshold;
+    private float _targetLevel;
+    private float _maximumBoost;
     private float _toneLow;
     private float _envelope;
     private float _peak;
+    private float _activityEnvelope;
+    private float _rmsPower;
+    private float _dynamicGain = 1f;
+    private float _belowThresholdSamples;
+    private bool _voiceActive;
     private float _tailEventCountdown;
     private float _tailEventDuration;
     private float _heldSample;
@@ -63,6 +82,12 @@ public sealed class VoxTailProcessor
         _sampleRate = sampleRate;
         _smoothingCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.01f));
         _attackCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.003f));
+        _activityAttackCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.002f));
+        _activityReleaseCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.08f));
+        _rmsAttackCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.015f));
+        _rmsReleaseCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.12f));
+        _boostAttackCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.04f));
+        _boostReleaseCoefficient = 1f - MathF.Exp(-1f / (sampleRate * 0.2f));
         _randomSeed = randomSeed == 0 ? 1u : randomSeed;
         _randomState = _randomSeed;
         UpdateProcessingCoefficients();
@@ -81,7 +106,11 @@ public sealed class VoxTailProcessor
             TailDrop = ClampFinite(parameters.TailDrop, 0f, 1f),
             TailTimeMilliseconds = ClampFinite(parameters.TailTimeMilliseconds, 50f, 1500f),
             TailCharacter = Enum.IsDefined(parameters.TailCharacter) ? parameters.TailCharacter : TailCharacter.Crackle,
-            OutputGainDb = ClampFinite(parameters.OutputGainDb, -12f, 12f)
+            OutputGainDb = ClampFinite(parameters.OutputGainDb, -12f, 12f),
+            DynamicBoost = ClampFinite(parameters.DynamicBoost, 0f, 1f),
+            VoiceThresholdDb = ClampFinite(parameters.VoiceThresholdDb, -72f, -24f),
+            TargetLevelDb = ClampFinite(parameters.TargetLevelDb, -36f, -12f),
+            MaximumBoostDb = ClampFinite(parameters.MaximumBoostDb, 0f, 18f)
         };
     }
 
@@ -93,6 +122,7 @@ public sealed class VoxTailProcessor
         }
 
         UpdateProcessingCoefficients();
+        UpdateDynamicLevelerTargets();
 
         for (var index = 0; index < input.Length; index++)
         {
@@ -105,9 +135,12 @@ public sealed class VoxTailProcessor
             _tailDrop = Smooth(_tailDrop, _target.TailDrop);
             _tailTimeMilliseconds = Smooth(_tailTimeMilliseconds, _target.TailTimeMilliseconds);
             _outputGain = Smooth(_outputGain, DecibelsToGain(_target.OutputGainDb));
+            _dynamicBoost = Smooth(_dynamicBoost, _target.DynamicBoost);
 
             var dry = float.IsFinite(input[index]) ? input[index] : 0f;
-            var gained = Math.Clamp(dry * _inputGain, -MaximumInternalSample, MaximumInternalSample);
+            var detectorInput = Math.Clamp(dry, -MaximumInternalSample, MaximumInternalSample);
+            var levelled = Math.Clamp(dry * UpdateDynamicGain(detectorInput), -MaximumInternalSample, MaximumInternalSample);
+            var gained = Math.Clamp(levelled * _inputGain, -MaximumInternalSample, MaximumInternalSample);
             var magnitude = MathF.Abs(gained);
             UpdateEnvelope(magnitude);
 
@@ -132,9 +165,9 @@ public sealed class VoxTailProcessor
             wet = ApplyTailCharacter(wet, textureWeight);
             wet *= 1f - (rawTailActivity * _tailDrop);
 
-            var mixed = (dry * (1f - _mix)) + (wet * _mix);
+            var mixed = (levelled * (1f - _mix)) + (wet * _mix);
             var processed = mixed * _outputGain;
-            output[index] = _mix <= 0f && _outputGain == 1f
+            output[index] = _mix <= 0f && _outputGain == 1f && _dynamicBoost <= 0f
                 ? dry
                 : SoftLimit(processed);
         }
@@ -147,6 +180,48 @@ public sealed class VoxTailProcessor
     {
         _envelope += (magnitude - _envelope) * (magnitude > _envelope ? _attackCoefficient : _envelopeReleaseCoefficient);
         _peak += (magnitude - _peak) * (magnitude > _peak ? _attackCoefficient : _peakReleaseCoefficient);
+    }
+
+    private float UpdateDynamicGain(float sample)
+    {
+        var magnitude = MathF.Abs(sample);
+        _activityEnvelope += (magnitude - _activityEnvelope) *
+            (magnitude > _activityEnvelope ? _activityAttackCoefficient : _activityReleaseCoefficient);
+
+        if (_activityEnvelope >= _voiceThreshold)
+        {
+            _voiceActive = true;
+            _belowThresholdSamples = 0f;
+        }
+        else if (_voiceActive && _activityEnvelope < _voiceThreshold * 0.5f)
+        {
+            _belowThresholdSamples++;
+            if (_belowThresholdSamples >= _sampleRate * 0.08f)
+            {
+                _voiceActive = false;
+                _belowThresholdSamples = 0f;
+            }
+        }
+        else
+        {
+            _belowThresholdSamples = 0f;
+        }
+
+        var square = sample * sample;
+        _rmsPower += (square - _rmsPower) *
+            (square > _rmsPower ? _rmsAttackCoefficient : _rmsReleaseCoefficient);
+        var targetGain = 1f;
+
+        if (_voiceActive && _dynamicBoost > 0f)
+        {
+            var rms = MathF.Sqrt(MathF.Max(_rmsPower, 0f));
+            var requestedGain = _targetLevel / MathF.Max(rms, _voiceThreshold);
+            targetGain = 1f + ((Math.Clamp(requestedGain, 1f, _maximumBoost) - 1f) * _dynamicBoost);
+        }
+
+        _dynamicGain += (targetGain - _dynamicGain) *
+            (targetGain > _dynamicGain ? _boostAttackCoefficient : _boostReleaseCoefficient);
+        return _dynamicGain;
     }
 
     private float ApplyTailCharacter(float sample, float tailWeight)
@@ -230,6 +305,13 @@ public sealed class VoxTailProcessor
         var peakSeconds = Math.Clamp(_tailTimeMilliseconds / 1000f, 0.05f, 1.5f);
         _envelopeReleaseCoefficient = 1f - MathF.Exp(-1f / (_sampleRate * envelopeSeconds));
         _peakReleaseCoefficient = 1f - MathF.Exp(-1f / (_sampleRate * peakSeconds));
+    }
+
+    private void UpdateDynamicLevelerTargets()
+    {
+        _voiceThreshold = DecibelsToGain(_target.VoiceThresholdDb);
+        _targetLevel = DecibelsToGain(_target.TargetLevelDb);
+        _maximumBoost = DecibelsToGain(_target.MaximumBoostDb);
     }
 
     private float NextRandomUnit()
