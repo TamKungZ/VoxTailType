@@ -90,9 +90,34 @@ public sealed partial class EditorView : IAudioPluginView
         }
 
         _selfHandle = GCHandle.Alloc(this);
-        NativeMethods.SetWindowLongPtr(_window, NativeMethods.GwlpUserData, GCHandle.ToIntPtr(_selfHandle));
-        NativeMethods.SetTimer(_window, TimerId, 33, 0);
-        NativeMethods.InvalidateRect(_window, 0, false);
+        try
+        {
+            Marshal.SetLastPInvokeError(0);
+            var previousUserData = NativeMethods.SetWindowLongPtr(
+                _window,
+                NativeMethods.GwlpUserData,
+                GCHandle.ToIntPtr(_selfHandle));
+            var userDataError = Marshal.GetLastPInvokeError();
+            if (previousUserData == 0 && userDataError != 0)
+            {
+                throw new InvalidOperationException($"Could not initialize the VoxTail editor window. Win32 error: {userDataError}.");
+            }
+
+            if (NativeMethods.SetTimer(_window, TimerId, 33, 0) == 0)
+            {
+                throw new InvalidOperationException($"Could not start the VoxTail editor meter timer. Win32 error: {Marshal.GetLastWin32Error()}.");
+            }
+
+            NativeMethods.InvalidateRect(_window, 0, false);
+        }
+        catch
+        {
+            NativeMethods.SetWindowLongPtr(_window, NativeMethods.GwlpUserData, 0);
+            NativeMethods.DestroyWindow(_window);
+            _window = 0;
+            _selfHandle.Free();
+            throw;
+        }
     }
 
     public void Removed()
