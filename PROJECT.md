@@ -13,7 +13,9 @@ The class IDs are persistent identifiers. Do not regenerate them for subsequent 
 
 ## Current milestone
 
-The initial implementation separates a managed DSP passthrough from the NPlug VST3 processor and includes synthetic unit tests. No vocal character controls are exposed before their DSP behavior exists.
+The plugin now connects an allocation-free managed DSP chain to the NPlug VST3 processor. Its host-automatable controls implement input/output gain, saturation and intensity, tone, wet/dry mix, and three manually adjustable tail characters. It includes factory programs and synthetic tests for transparency, added drive, tail texture, non-finite input, output bounds, and callback allocations.
+
+The effect uses envelope-based tail triggering as a creative heuristic; it does not guarantee a human-like shout, and mono bus layouts and target-DAW auditioning remain to be validated.
 
 ## License
 

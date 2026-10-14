@@ -25,6 +25,8 @@ The test project uses NPlug.Validator to check the plug-in factory. If the publi
 dotnet test VoxTail-Type-B.sln
 ```
 
+The plugin exposes host-automatable processing and tail controls, plus factory programs named Clean, Bite, Shout, Cracked Tail, Broken Tail, and Glitch Tail. Load a program as a starting point, adjust its parameters, then use the DAW's preset/state save feature for custom settings.
+
 ## Install in a DAW
 
 Copy the `VoxTail Type-B.vst3` bundle directory into a VST3 scan directory (commonly `%CommonProgramFiles%\VST3`) or add `artifacts\VoxTail-Type-B\win-x64` to the DAW's plug-in paths. Rescan and load **VoxTail Type-B** as an audio effect. If the scan fails, confirm the DAW is 64-bit, rescan the output path, and consult the DAW's plug-in scan log.

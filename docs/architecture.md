@@ -2,11 +2,15 @@
 
 The solution has two production layers and one test project:
 
-- `VoxTail.TypeB.Dsp` contains host-independent processing code and has no VST3 dependency.
-- `VoxTail.TypeB.Plugin` owns NPlug registration, stable class IDs, audio buses, and the real-time callback. It calls the DSP core with the host's existing channel spans, so processing does not allocate audio buffers per block.
-- `VoxTail.TypeB.Dsp.Tests` uses synthetic signals to test the DSP layer without requiring a DAW.
+- `VoxTail.TypeB.Dsp` contains host-independent processing code, parameter smoothing, saturation, tone shaping, envelope tracking, and the three tail characters; it has no VST3 dependency.
+- `VoxTail.TypeB.Plugin` owns NPlug registration, stable class IDs, host-automatable parameters, factory programs, audio buses, and the real-time callback. It calls one pre-created DSP state per channel with the host's existing spans, so processing does not allocate audio buffers per block.
+- `VoxTail.TypeB.Dsp.Tests` uses synthetic signals to test transparency, drive, tails, non-finite input, output bounds, common sample rates, and allocation behavior without requiring a DAW.
 
-The initial processor is a float32 stereo effect that copies each input channel to the matching output channel without changing sample values or adding latency. Mono bus layouts are not enabled yet; NPlug's base processor only accepts the bus arrangements registered at initialization, so mono support needs explicit layout handling rather than assuming a stereo host buffer. The built-in host bypass parameter is registered. DSP controls are intentionally deferred until they have implemented behavior.
+The processor is a zero-latency float32 stereo effect. Its clean defaults preserve finite input samples exactly; the bypass parameter uses NPlug's host bypass behavior. Drive and intensity add normalized tanh saturation, Tone applies a one-pole high-frequency tilt on the processed path, and Mix blends the processed path with the original. Tail detection compares a fast envelope follower with a slower peak follower. Tail Amount and Tail Time control the amount and decay; Tail Character selects sparse crackle transients, brief dropouts, or short sample repeats. Parameter changes are smoothed over 10 ms.
+
+Mono bus layouts are not enabled yet. Non-finite input samples are replaced with silence in the active DSP path; clean defaults and host bypass preserve finite audio without alteration. Processed output uses a soft ceiling, while the default dry path remains transparent.
+
+Factory programs provide Clean, Bite, Shout, Cracked Tail, Broken Tail, and Glitch Tail starting points. Their parameters remain editable, and the DAW can save the edited state as a user preset.
 
 ## Stable identifiers
 
