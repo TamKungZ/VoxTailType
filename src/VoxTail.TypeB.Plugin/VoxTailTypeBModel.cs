@@ -17,6 +17,10 @@ public sealed class VoxTailTypeBModel : AudioProcessorModel
         AddParameter(new AudioRangeParameter("Tail Time", "ms", VoxTailParameterIds.TailTime, 50, 1500, 250));
         AddParameter(new AudioStringListParameter("Tail Character", ["Crackle", "Breaks", "Glitch"], id: VoxTailParameterIds.TailCharacter));
         AddParameter(new AudioRangeParameter("Output Gain", "dB", VoxTailParameterIds.OutputGain, -12, 12, 0));
+        AddParameter(new AudioRangeParameter("Dynamic Boost", "%", VoxTailParameterIds.DynamicBoost, 0, 100, 0));
+        AddParameter(new AudioRangeParameter("Voice Threshold", "dB", VoxTailParameterIds.VoiceThreshold, -72, -24, -54));
+        AddParameter(new AudioRangeParameter("Target Level", "dBFS", VoxTailParameterIds.TargetLevel, -36, -12, -24));
+        AddParameter(new AudioRangeParameter("Maximum Boost", "dB", VoxTailParameterIds.MaximumBoost, 0, 18, 9));
     }
 }
 
@@ -76,6 +80,10 @@ internal sealed class VoxTailPresetBuilder : AudioProgramListBuilder<VoxTailType
         model.GetParameterById(VoxTailParameterIds.TailTime).NormalizedValue = tailTime;
         model.GetParameterById(VoxTailParameterIds.TailCharacter).NormalizedValue = tailCharacter;
         model.GetParameterById(VoxTailParameterIds.OutputGain).NormalizedValue = outputGain;
+        model.GetParameterById(VoxTailParameterIds.DynamicBoost).NormalizedValue = 0.0;
+        model.GetParameterById(VoxTailParameterIds.VoiceThreshold).NormalizedValue = 0.375;
+        model.GetParameterById(VoxTailParameterIds.TargetLevel).NormalizedValue = 0.5;
+        model.GetParameterById(VoxTailParameterIds.MaximumBoost).NormalizedValue = 0.5;
     }
 }
 
@@ -91,4 +99,8 @@ internal static class VoxTailParameterIds
     public const int TailCharacter = 107;
     public const int OutputGain = 108;
     public const int TailDrop = 109;
+    public const int DynamicBoost = 110;
+    public const int VoiceThreshold = 111;
+    public const int TargetLevel = 112;
+    public const int MaximumBoost = 113;
 }
