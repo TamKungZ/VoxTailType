@@ -7,6 +7,16 @@ namespace VoxTail.TypeB.Dsp.Tests;
 public sealed class PluginValidationTests
 {
     [Fact]
+    public void Controller_CreatesCustomEditorView()
+    {
+        var controller = new Controller();
+        var view = ((IAudioController)controller).CreateView();
+
+        Assert.NotNull(view);
+        Assert.Equal(OperatingSystem.IsWindows(), view.IsPlatformTypeSupported(AudioPluginViewPlatform.Hwnd));
+    }
+
+    [Fact]
     public void Model_ExposesNamedTailCharactersAndFactoryPrograms()
     {
         var model = new Model();

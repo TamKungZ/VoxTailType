@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFramework)</TargetFramework>
+    <RootNamespace>VoxTail.TypeB.Ui</RootNamespace>
+    <AssemblyName>VoxTail.TypeB.Ui</AssemblyName>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NPlug" Version="0.5.0.380" />
+  </ItemGroup>
+</Project>

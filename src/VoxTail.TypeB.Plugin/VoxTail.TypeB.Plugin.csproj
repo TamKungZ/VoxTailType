@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\VoxTail.TypeB.Dsp\VoxTail.TypeB.Dsp.csproj" />
+    <ProjectReference Include="..\VoxTail.TypeB.Ui\VoxTail.TypeB.Ui.csproj" />
     <PackageReference Include="NPlug" Version="0.5.0.380" />
   </ItemGroup>
 

@@ -21,6 +21,11 @@ public sealed class VoxTailProcessor
     private float _outputGain = 1f;
     private float _dynamicBoost;
 
+    public float MeterInputRms { get; private set; }
+    public float MeterOutputRms { get; private set; }
+    public float MeterBoostDb { get; private set; }
+    public bool MeterVoiceActive { get; private set; }
+
     public VoxTailProcessor(float sampleRate, uint randomSeed = 0xA341316Cu)
     {
         if (!float.IsFinite(sampleRate) || sampleRate <= 0f)
@@ -70,6 +75,8 @@ public sealed class VoxTailProcessor
         _toneFilter.SetTarget(_target.Tone);
         _tailTexture.SetTarget(_target.TailTimeMilliseconds);
         _leveler.SetTargets(_target.VoiceThresholdDb, _target.TargetLevelDb, _target.MaximumBoostDb);
+        var inputPower = 0f;
+        var outputPower = 0f;
 
         for (var index = 0; index < input.Length; index++)
         {
@@ -108,7 +115,16 @@ public sealed class VoxTailProcessor
             output[index] = _mix <= 0f && _outputGain == 1f && _dynamicBoost <= 0f
                 ? dry
                 : SoftLimit(processed);
+            var meterInput = Math.Clamp(detectorInput, -1f, 1f);
+            var meterOutput = Math.Clamp(output[index], -1f, 1f);
+            inputPower += meterInput * meterInput;
+            outputPower += meterOutput * meterOutput;
         }
+
+        MeterInputRms = input.Length == 0 ? 0f : MathF.Sqrt(inputPower / input.Length);
+        MeterOutputRms = input.Length == 0 ? 0f : MathF.Sqrt(outputPower / input.Length);
+        MeterBoostDb = 20f * MathF.Log10(MathF.Max(_leveler.CurrentGain, 1e-6f));
+        MeterVoiceActive = _leveler.IsVoiceActive;
     }
 
     private float Smooth(float current, float target) =>

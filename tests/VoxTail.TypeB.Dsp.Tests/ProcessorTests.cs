@@ -50,6 +50,31 @@ public sealed class ProcessorTests
         Assert.True(Rms(output.AsSpan(sampleRate / 2)) > inputRms * 1.8f);
     }
 
+    [Fact]
+    public void Process_ReportsBlockLoudnessAndDynamicBoostForTheEditor()
+    {
+        const int sampleRate = 48000;
+        var processor = new VoxTailProcessor(sampleRate);
+        processor.SetParameters(VoxTailParameters.Default with
+        {
+            DynamicBoost = 1f,
+            VoiceThresholdDb = -60f,
+            TargetLevelDb = -12f,
+            MaximumBoostDb = 12f
+        });
+        var input = Enumerable.Range(0, sampleRate / 10)
+            .Select(sample => 0.1f * MathF.Sin(2f * MathF.PI * 440f * sample / sampleRate))
+            .ToArray();
+        var output = new float[input.Length];
+
+        processor.Process(input, output);
+
+        Assert.Equal(Rms(input), processor.MeterInputRms, 3);
+        Assert.Equal(Rms(output), processor.MeterOutputRms, 3);
+        Assert.True(processor.MeterVoiceActive);
+        Assert.True(processor.MeterBoostDb > 0f);
+    }
+
     [Theory]
     [InlineData(44100)]
     [InlineData(48000)]

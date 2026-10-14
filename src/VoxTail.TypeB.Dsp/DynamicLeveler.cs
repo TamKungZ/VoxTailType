@@ -18,6 +18,9 @@ internal sealed class DynamicLeveler
     private float _belowThresholdSamples;
     private bool _voiceActive;
 
+    public float CurrentGain => _gain;
+    public bool IsVoiceActive => _voiceActive;
+
     public DynamicLeveler(float sampleRate)
     {
         _sampleRate = sampleRate;
