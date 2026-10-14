@@ -40,6 +40,7 @@ public sealed partial class EditorView : IAudioPluginView
     private int _width = ViewWidth;
     private int _height = ViewHeight;
     private int _draggedControl = -1;
+    private int _dragOffsetX;
     private int _historyPosition;
     private float _inputRms;
     private float _outputRms;
@@ -305,17 +306,35 @@ public sealed partial class EditorView : IAudioPluginView
     {
         for (var index = 0; index < Controls.Length; index++)
         {
-            var bounds = GetControlBounds(Controls[index]);
+            var control = Controls[index];
+            var bounds = GetControlBounds(control);
             var sliderTop = bounds.Y + bounds.Height - 22;
             if (x < bounds.X || x > bounds.X + bounds.Width || y < sliderTop || y > bounds.Y + bounds.Height)
             {
                 continue;
             }
 
+            var right = Math.Min(bounds.X + bounds.Width, _width - 30);
+            var trackLeft = bounds.X + 12;
+            var trackRight = right - 12;
+            var currentValue = (float)_bridge.GetEditorParameterValue(control.ParameterId);
+            var thumbX = trackLeft + (int)MathF.Round((trackRight - trackLeft) * currentValue);
+            var grabbedThumb = Math.Abs(x - thumbX) <= 8;
             _draggedControl = index;
-            _bridge.BeginEditorParameterEdit(Controls[index].ParameterId);
+            _dragOffsetX = grabbedThumb ? x - thumbX : 0;
+            _bridge.BeginEditorParameterEdit(control.ParameterId);
             NativeMethods.SetCapture(window);
-            UpdateDraggedControl(x);
+            if (NativeMethods.GetCapture() != window)
+            {
+                EndDrag(window);
+                return;
+            }
+
+            if (!grabbedThumb)
+            {
+                UpdateDraggedControl(x);
+            }
+
             return;
         }
     }
@@ -329,7 +348,13 @@ public sealed partial class EditorView : IAudioPluginView
 
         var control = Controls[_draggedControl];
         var bounds = GetControlBounds(control);
-        var normalized = Math.Clamp((x - bounds.X - 12f) / Math.Max(bounds.Width - 24f, 1f), 0f, 1f);
+        var right = Math.Min(bounds.X + bounds.Width, _width - 30);
+        var trackLeft = bounds.X + 12;
+        var trackRight = right - 12;
+        var normalized = Math.Clamp(
+            (x - _dragOffsetX - trackLeft) / (float)Math.Max(trackRight - trackLeft, 1),
+            0f,
+            1f);
         if (control.IsChoice)
         {
             normalized = MathF.Round(normalized * 2f) / 2f;
@@ -347,6 +372,7 @@ public sealed partial class EditorView : IAudioPluginView
         }
 
         _draggedControl = -1;
+        _dragOffsetX = 0;
         _bridge.EndEditorParameterEdit();
         if (NativeMethods.GetCapture() == window)
         {
