@@ -72,6 +72,10 @@ public sealed class VoxTailTypeBProcessor : AudioProcessor<VoxTailTypeBModel>
             Read(Model, VoxTailParameterIds.TailDrop),
             50f + (Read(Model, VoxTailParameterIds.TailTime) * 1450f),
             tailCharacter,
-            Decibels(Read(Model, VoxTailParameterIds.OutputGain)));
+            Decibels(Read(Model, VoxTailParameterIds.OutputGain)),
+            Read(Model, VoxTailParameterIds.DynamicBoost),
+            -72f + (Read(Model, VoxTailParameterIds.VoiceThreshold) * 48f),
+            -36f + (Read(Model, VoxTailParameterIds.TargetLevel) * 24f),
+            Read(Model, VoxTailParameterIds.MaximumBoost) * 18f);
     }
 }
