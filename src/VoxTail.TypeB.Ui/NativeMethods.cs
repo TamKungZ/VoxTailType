@@ -71,6 +71,12 @@ internal static class NativeMethods
         public int Bottom;
     }
 
+    [StructLayout(LayoutKind.Sequential, Size = 32)]
+    public struct PaintReservedBytes
+    {
+        private byte _firstByte;
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public struct PaintStruct
     {
@@ -79,8 +85,7 @@ internal static class NativeMethods
         public Rect PaintRectangle;
         public int Restore;
         public int IncrementalUpdate;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
-        public byte[] Reserved;
+        public PaintReservedBytes Reserved;
     }
 
     [DllImport("user32.dll", EntryPoint = "RegisterClassExW", SetLastError = true)]

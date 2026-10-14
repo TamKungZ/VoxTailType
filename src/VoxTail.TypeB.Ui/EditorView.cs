@@ -358,7 +358,7 @@ public sealed partial class EditorView : IAudioPluginView
 
     private void Paint(nint window)
     {
-        var paint = new NativeMethods.PaintStruct { Reserved = new byte[32] };
+        var paint = new NativeMethods.PaintStruct();
         var target = NativeMethods.BeginPaint(window, ref paint);
         if (target == 0)
         {
@@ -379,14 +379,27 @@ public sealed partial class EditorView : IAudioPluginView
             {
                 System.Diagnostics.Trace.TraceError("Could not allocate the VoxTail editor's double-buffered surface; drawing directly.");
                 NativeMethods.SetBkMode(target, NativeMethods.Transparent);
-                DrawEditor(target, width, height);
+                DrawEditorOrReportError(target, width, height);
                 return;
             }
 
             oldBitmap = NativeMethods.SelectObject(buffer, bitmap);
+            if (oldBitmap == 0 || oldBitmap == (nint)(-1))
+            {
+                System.Diagnostics.Trace.TraceError("Could not select the VoxTail editor's double-buffered bitmap; drawing directly.");
+                NativeMethods.SetBkMode(target, NativeMethods.Transparent);
+                DrawEditorOrReportError(target, width, height);
+                return;
+            }
+
             NativeMethods.SetBkMode(buffer, NativeMethods.Transparent);
-            DrawEditor(buffer, width, height);
-            NativeMethods.BitBlt(target, 0, 0, width, height, buffer, 0, 0, NativeMethods.Srccopy);
+            DrawEditorOrReportError(buffer, width, height);
+            if (!NativeMethods.BitBlt(target, 0, 0, width, height, buffer, 0, 0, NativeMethods.Srccopy))
+            {
+                System.Diagnostics.Trace.TraceError($"Could not copy the VoxTail editor's double-buffered surface. Win32 error: {Marshal.GetLastWin32Error()}.");
+                NativeMethods.SetBkMode(target, NativeMethods.Transparent);
+                DrawEditorOrReportError(target, width, height);
+            }
         }
         finally
         {
@@ -406,6 +419,21 @@ public sealed partial class EditorView : IAudioPluginView
             }
 
             NativeMethods.EndPaint(window, ref paint);
+        }
+    }
+
+    private void DrawEditorOrReportError(nint dc, int width, int height)
+    {
+        try
+        {
+            DrawEditor(dc, width, height);
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Trace.TraceError($"VoxTail editor rendering failed: {exception}");
+            FillRectangle(dc, 0, 0, width, height, UiColors.Canvas);
+            DrawText(dc, "EDITOR RENDER ERROR", 28, 28, UiColors.DeepRose, 16, true);
+            DrawText(dc, "See the host or debugger log for details.", 28, 58, UiColors.Secondary, 11, false);
         }
     }
 
