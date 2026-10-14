@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFramework)</TargetFramework>
+    <RootNamespace>VoxTail.TypeB.Plugin</RootNamespace>
+    <AssemblyName>VoxTail.TypeB</AssemblyName>
+    <PublishDir>$(MSBuildThisFileDirectory)..\..\artifacts\VoxTail-Type-B\$(RuntimeIdentifier)\</PublishDir>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VoxTail.TypeB.Dsp\VoxTail.TypeB.Dsp.csproj" />
+    <PackageReference Include="NPlug" Version="0.5.0.380" />
+  </ItemGroup>
+
+  <Target Name="PackageVoxTailVst3Bundle" AfterTargets="Publish" Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <PropertyGroup>
+      <Vst3BundlePath>$(PublishDir)VoxTail Type-B.vst3</Vst3BundlePath>
+    </PropertyGroup>
+    <MakeDir Directories="$(Vst3BundlePath)\Contents\x86_64-win" />
+    <Copy
+      SourceFiles="$(PublishDir)$(AssemblyName).vst3"
+      DestinationFiles="$(Vst3BundlePath)\Contents\x86_64-win\$(AssemblyName).vst3" />
+    <Delete Files="$(PublishDir)$(AssemblyName).vst3" />
+  </Target>
+</Project>

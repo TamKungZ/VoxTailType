@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFramework)</TargetFramework>
+    <RootNamespace>VoxTail.TypeB.Dsp</RootNamespace>
+  </PropertyGroup>
+</Project>
