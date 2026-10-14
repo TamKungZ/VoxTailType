@@ -21,9 +21,13 @@
       <Vst3BundlePath>$(PublishDir)VoxTail Type-B.vst3</Vst3BundlePath>
     </PropertyGroup>
     <MakeDir Directories="$(Vst3BundlePath)\Contents\x86_64-win" />
+    <MakeDir Directories="$(Vst3BundlePath)\Contents\Resources" />
     <Copy
       SourceFiles="$(PublishDir)$(AssemblyName).dll"
       DestinationFiles="$(Vst3BundlePath)\Contents\x86_64-win\$(AssemblyName).vst3" />
+    <Copy
+      SourceFiles="$(MSBuildThisFileDirectory)..\..\assets\icon.ico"
+      DestinationFiles="$(Vst3BundlePath)\Contents\Resources\icon.ico" />
     <Delete Files="$(PublishDir)$(AssemblyName).dll" />
   </Target>
 </Project>
