@@ -12,4 +12,6 @@ VST3 is subject to Steinberg's separate licensing terms. NPlug's documentation s
 - https://steinbergmedia.github.io/vst3_dev_portal/pages/VST%2B3%2BLicensing/Index.html
 - https://github.com/xoofx/NPlug.Samples
 
+VoxTail Type-B is released under GPL version 3, the open-source option described by the NPlug documentation for VST3 plug-ins. The full project license is in [LICENSE](LICENSE).
+
 No VST3 SDK binaries are separately bundled by this project.

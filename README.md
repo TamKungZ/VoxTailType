@@ -14,3 +14,7 @@ dotnet publish src\VoxTail.TypeB.Plugin\VoxTail.TypeB.Plugin.csproj -c Release -
 The native plug-in bundle is written to `artifacts\VoxTail-Type-B\win-x64\VoxTail Type-B.vst3`. Copy that bundle directory to a VST3 scan directory or add the output directory to the DAW's plug-in paths, then rescan for **VoxTail Type-B**. NPlug's validator is included as a dependency; its execution status is documented in `docs/development.md`.
 
 See [development setup](docs/development.md), [architecture](docs/architecture.md), and [DSP roadmap](docs/dsp-roadmap.md) for environment notes, stable plug-in IDs, validation steps, and planned work.
+
+## License
+
+VoxTail Type-B is open source under [GNU GPL version 3](LICENSE). Third-party components remain under their respective licenses; see [third-party notices](THIRD-PARTY-NOTICES.md).
