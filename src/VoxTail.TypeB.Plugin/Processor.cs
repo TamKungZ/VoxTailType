@@ -3,16 +3,16 @@ using VoxTail.TypeB.Dsp;
 
 namespace VoxTail.TypeB.Plugin;
 
-public sealed class VoxTailTypeBProcessor : AudioProcessor<VoxTailTypeBModel>
+public sealed class Processor : AudioProcessor<Model>
 {
     public static readonly Guid ClassId = new("1b3718ed-03a5-4a00-8879-cc3245cc8938");
     private VoxTailProcessor[]? _channelProcessors;
 
-    public VoxTailTypeBProcessor() : base(AudioSampleSizeSupport.Float32)
+    public Processor() : base(AudioSampleSizeSupport.Float32)
     {
     }
 
-    public override Guid ControllerClassId => VoxTailTypeBController.ClassId;
+    public override Guid ControllerClassId => Controller.ClassId;
 
     protected override bool Initialize(AudioHostApplication host)
     {
@@ -58,24 +58,24 @@ public sealed class VoxTailTypeBProcessor : AudioProcessor<VoxTailTypeBModel>
         static float Decibels(float normalized) => (normalized * 24f) - 12f;
 
         var tailCharacter = (TailCharacter)Math.Clamp(
-            (int)MathF.Round(Read(Model, VoxTailParameterIds.TailCharacter) * 2f),
+            (int)MathF.Round(Read(Model, ParameterIds.TailCharacter) * 2f),
             0,
             2);
 
         return new VoxTailParameters(
-            Decibels(Read(Model, VoxTailParameterIds.InputGain)),
-            Read(Model, VoxTailParameterIds.Intensity),
-            Read(Model, VoxTailParameterIds.Drive),
-            Read(Model, VoxTailParameterIds.Tone),
-            Read(Model, VoxTailParameterIds.Mix),
-            Read(Model, VoxTailParameterIds.TailAmount),
-            Read(Model, VoxTailParameterIds.TailDrop),
-            50f + (Read(Model, VoxTailParameterIds.TailTime) * 1450f),
+            Decibels(Read(Model, ParameterIds.InputGain)),
+            Read(Model, ParameterIds.Intensity),
+            Read(Model, ParameterIds.Drive),
+            Read(Model, ParameterIds.Tone),
+            Read(Model, ParameterIds.Mix),
+            Read(Model, ParameterIds.TailAmount),
+            Read(Model, ParameterIds.TailDrop),
+            50f + (Read(Model, ParameterIds.TailTime) * 1450f),
             tailCharacter,
-            Decibels(Read(Model, VoxTailParameterIds.OutputGain)),
-            Read(Model, VoxTailParameterIds.DynamicBoost),
-            -72f + (Read(Model, VoxTailParameterIds.VoiceThreshold) * 48f),
-            -36f + (Read(Model, VoxTailParameterIds.TargetLevel) * 24f),
-            Read(Model, VoxTailParameterIds.MaximumBoost) * 18f);
+            Decibels(Read(Model, ParameterIds.OutputGain)),
+            Read(Model, ParameterIds.DynamicBoost),
+            -72f + (Read(Model, ParameterIds.VoiceThreshold) * 48f),
+            -36f + (Read(Model, ParameterIds.TargetLevel) * 24f),
+            Read(Model, ParameterIds.MaximumBoost) * 18f);
     }
 }

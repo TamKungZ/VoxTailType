@@ -9,7 +9,7 @@ public sealed class PluginValidationTests
     [Fact]
     public void Model_ExposesNamedTailCharactersAndFactoryPrograms()
     {
-        var model = new VoxTailTypeBModel();
+        var model = new Model();
         model.Initialize();
 
         var tailCharacter = Assert.Single(Enumerable.Range(0, model.ParameterCount)
@@ -49,7 +49,7 @@ public sealed class PluginValidationTests
     public void PluginFactoryAndPublishedBinary_PassVst3ValidatorWhenBinaryExists()
     {
         var factoryResult = AudioPluginValidator.Validate(
-            VoxTailTypeBPlugin.GetFactory().Export,
+            PluginEntry.GetFactory().Export,
             Console.Out,
             Console.Error);
 

@@ -3,16 +3,16 @@ using NPlug;
 
 namespace VoxTail.TypeB.Plugin;
 
-public static class VoxTailTypeBPlugin
+public static class PluginEntry
 {
     public static AudioPluginFactory GetFactory()
     {
         var factory = new AudioPluginFactory(
             new("TamKungZ_", "https://github.com/TamKungZ/VoxTailType", "dev@tamkungz.me"));
-        factory.RegisterPlugin<VoxTailTypeBProcessor>(
-            new(VoxTailTypeBProcessor.ClassId, "VoxTail Type-B", AudioProcessorCategory.Effect));
-        factory.RegisterPlugin<VoxTailTypeBController>(
-            new(VoxTailTypeBController.ClassId, "VoxTail Type-B Controller"));
+        factory.RegisterPlugin<Processor>(
+            new(Processor.ClassId, "VoxTail Type-B", AudioProcessorCategory.Effect));
+        factory.RegisterPlugin<Controller>(
+            new(Controller.ClassId, "VoxTail Type-B Controller"));
         return factory;
     }
 
