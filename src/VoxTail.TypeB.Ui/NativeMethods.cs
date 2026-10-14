@@ -196,7 +196,7 @@ internal static class NativeMethods
     [DllImport("gdi32.dll", EntryPoint = "SetDCBrushColor", SetLastError = true)]
     public static extern int SetDCBrushColor(nint dc, int color);
 
-    [DllImport("gdi32.dll", EntryPoint = "FillRect", SetLastError = true)]
+    [DllImport("user32.dll", EntryPoint = "FillRect", SetLastError = true)]
     public static extern int FillRect(nint dc, ref Rect rect, nint brush);
 
     [DllImport("gdi32.dll", EntryPoint = "CreateFontW", CharSet = CharSet.Unicode, SetLastError = true)]
