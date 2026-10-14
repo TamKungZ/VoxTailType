@@ -18,6 +18,38 @@ public sealed class ProcessorTests
         Assert.Equal(input, output);
     }
 
+    [Fact]
+    public void Process_UpdatesCachedLinearGainTargetsWhenParametersChange()
+    {
+        const int sampleRate = 48000;
+        var processor = new VoxTailProcessor(sampleRate);
+        var input = Enumerable.Range(0, sampleRate)
+            .Select(sample => 0.05f * MathF.Sin(2f * MathF.PI * 440f * sample / sampleRate))
+            .ToArray();
+        var output = new float[input.Length];
+        processor.SetParameters(VoxTailParameters.Default with
+        {
+            InputGainDb = 6f,
+            OutputGainDb = -6f,
+            Mix = 1f
+        });
+
+        processor.Process(input, output);
+
+        var inputRms = Rms(input.AsSpan(sampleRate / 2));
+        var outputRms = Rms(output.AsSpan(sampleRate / 2));
+        Assert.InRange(outputRms / inputRms, 0.98f, 1.02f);
+
+        processor.SetParameters(VoxTailParameters.Default with
+        {
+            InputGainDb = 6f,
+            Mix = 1f
+        });
+        processor.Process(input, output);
+
+        Assert.True(Rms(output.AsSpan(sampleRate / 2)) > inputRms * 1.8f);
+    }
+
     [Theory]
     [InlineData(44100)]
     [InlineData(48000)]
@@ -245,5 +277,16 @@ public sealed class ProcessorTests
         }
 
         return (float)(total / left.Length);
+    }
+
+    private static float Rms(ReadOnlySpan<float> samples)
+    {
+        double sum = 0d;
+        foreach (var sample in samples)
+        {
+            sum += sample * sample;
+        }
+
+        return (float)Math.Sqrt(sum / samples.Length);
     }
 }

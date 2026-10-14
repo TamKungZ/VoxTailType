@@ -8,6 +8,8 @@ public sealed class VoxTailProcessor
     private readonly ToneFilter _toneFilter;
     private readonly TailTextureProcessor _tailTexture;
     private VoxTailParameters _target = VoxTailParameters.Default;
+    private float _targetInputGain = 1f;
+    private float _targetOutputGain = 1f;
     private float _inputGain = 1f;
     private float _intensity;
     private float _drive;
@@ -54,6 +56,8 @@ public sealed class VoxTailProcessor
             TargetLevelDb = ClampFinite(parameters.TargetLevelDb, -36f, -12f),
             MaximumBoostDb = ClampFinite(parameters.MaximumBoostDb, 0f, 18f)
         };
+        _targetInputGain = DecibelsToGain(_target.InputGainDb);
+        _targetOutputGain = DecibelsToGain(_target.OutputGainDb);
     }
 
     public void Process(ReadOnlySpan<float> input, Span<float> output)
@@ -69,7 +73,7 @@ public sealed class VoxTailProcessor
 
         for (var index = 0; index < input.Length; index++)
         {
-            _inputGain = Smooth(_inputGain, DecibelsToGain(_target.InputGainDb));
+            _inputGain = Smooth(_inputGain, _targetInputGain);
             _intensity = Smooth(_intensity, _target.Intensity);
             _drive = Smooth(_drive, _target.Drive);
             _tone = Smooth(_tone, _target.Tone);
@@ -77,7 +81,7 @@ public sealed class VoxTailProcessor
             _tailAmount = Smooth(_tailAmount, _target.TailAmount);
             _tailDrop = Smooth(_tailDrop, _target.TailDrop);
             _tailTimeMilliseconds = Smooth(_tailTimeMilliseconds, _target.TailTimeMilliseconds);
-            _outputGain = Smooth(_outputGain, DecibelsToGain(_target.OutputGainDb));
+            _outputGain = Smooth(_outputGain, _targetOutputGain);
             _dynamicBoost = Smooth(_dynamicBoost, _target.DynamicBoost);
 
             var dry = float.IsFinite(input[index]) ? input[index] : 0f;
