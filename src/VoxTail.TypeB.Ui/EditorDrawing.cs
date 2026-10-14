@@ -16,12 +16,33 @@ public sealed partial class EditorView
         DrawText(dc, $"{_boostDb:0.0} dB BOOST", 630, 91, UiColors.DeepRose, 10, true, width: 106, alignRight: true);
         DrawGraph(dc, width);
         DrawText(dc, "SHAPE", 28, 294, UiColors.Ink, 11, true);
+        var wetMix = (float)_bridge.GetEditorParameterValue(EditorParameter.Mix);
+        DrawText(
+            dc,
+            wetMix <= 0.001f
+                ? "WET MIX 0% - DRY SIGNAL ONLY"
+                : "WET PATH ACTIVE - DRIVE / INTENSITY / TONE SHAPE IT",
+            91, 295, wetMix <= 0.001f ? UiColors.DeepRose : UiColors.Secondary, 8, true, width: 470);
         DrawText(dc, "CORE", 677, 294, UiColors.Secondary, 9, true, width: 54, alignRight: true);
         DrawGroupCard(dc, 24, 312, width - 48, 168);
         DrawText(dc, "DYNAMIC BOOST", 28, 492, UiColors.Ink, 11, true);
+        var boostAmount = (float)_bridge.GetEditorParameterValue(EditorParameter.DynamicBoost);
+        DrawText(
+            dc,
+            boostAmount <= 0.001f
+                ? "BOOST 0% - LEVEL CONTROL OFF"
+                : "BOOST NEEDS ACTIVE AUDIO BELOW TARGET",
+            157, 493, boostAmount <= 0.001f ? UiColors.DeepRose : UiColors.Secondary, 8, true, width: 470);
         DrawText(dc, "LEVEL CONTROL", 650, 492, UiColors.Secondary, 9, true, width: 81, alignRight: true);
         DrawGroupCard(dc, 24, 510, width - 48, 96);
         DrawText(dc, "TAIL", 28, 620, UiColors.Ink, 11, true);
+        var tailAmount = (float)_bridge.GetEditorParameterValue(EditorParameter.TailAmount);
+        DrawText(
+            dc,
+            tailAmount <= 0.001f
+                ? "TAIL AMOUNT 0% - TAIL CONTROLS OFF"
+                : "TAIL TEXTURE AFFECTS DECAYING AUDIO",
+            72, 621, tailAmount <= 0.001f ? UiColors.DeepRose : UiColors.Secondary, 8, true, width: 520);
         DrawText(dc, "TEXTURE", 673, 620, UiColors.Secondary, 9, true, width: 58, alignRight: true);
         DrawGroupCard(dc, 24, 638, width - 48, 96);
         DrawText(dc, "VOXTAIL TYPE-B", 28, 765, UiColors.Secondary, 9, true);

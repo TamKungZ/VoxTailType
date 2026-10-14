@@ -16,7 +16,7 @@ public sealed partial class EditorView : IAudioPluginView
         new("Intensity", EditorParameter.Intensity, "%", 0f, 100f, 1, 0),
         new("Drive", EditorParameter.Drive, "%", 0f, 100f, 2, 0),
         new("Tone", EditorParameter.Tone, "%", 0f, 100f, 0, 1),
-        new("Clean / Wet Mix", EditorParameter.Mix, "%", 0f, 100f, 1, 1),
+        new("Wet Mix", EditorParameter.Mix, "%", 0f, 100f, 1, 1),
         new("Output Gain", EditorParameter.OutputGain, "dB", -12f, 12f, 2, 1),
         new("Boost Amount", EditorParameter.DynamicBoost, "%", 0f, 100f, 0, 2),
         new("Voice Threshold", EditorParameter.VoiceThreshold, "dB", -72f, -24f, 1, 2),
